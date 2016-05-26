@@ -3,10 +3,8 @@ import json
 import io
 import os
 import subprocess
-from os.path import expanduser
 
-DEFAULT_PATH = expanduser('~')
-APP_TOKEN = '07_anwjgBHsAAAAAAAAACovPLeHyqFRcu-rdruSJlhMbNGk1d7jyrIVJtBXFDX70'
+DEFAULT_PATH = os.path.expanduser('~')
 SUBTIVALS_LOG_LOCATION = os.path.join(DEFAULT_PATH, 'subtivals_log.txt')
 
 def main():
@@ -20,21 +18,21 @@ def main():
     stats = {}
     stats['location'] = settings['location']
     stats.update(get_subtivals_stats())
-    write_log(','.join(stats.values()))
     # TODO generate random string for filename
     file_path = 'unfortunate_test.txt'
     try:
-        dbx = dropbox.Dropbox(APP_TOKEN)
+        dbx = dropbox.Dropbox(os.environ['DROPBOX_TOKEN'])
+        current_account = dbx.users_get_current_account()
+        write_log('Connected to DropBox account: {0}'.format(current_account))
         dbx.files_upload(stats, file_path)
 
-        #TODO: Delete. Kept for debugging
         for entry in dbx.files_list_folder('').entries:
             print(entry.name)
     except:
         exit
 
 def get_settings():
-    default_settings = {'location': 'unknown'}
+    default_settings = {'room_name': 'unknown'}
     msg, filename = '', ''
     config_file_path = os.path.join(DEFAULT_PATH, 'tiff-monitoring-config.json')
 
@@ -42,9 +40,8 @@ def get_settings():
         with open(config_file_path, mode='r', encoding='utf-8') as config_file:
             try:
                 settings = json.loads(config_file.read())
-                if settings == default_settings or \
-                   not set(settings).issuperset(default_settings):
-                    msg='The location of this laptop is still unknown.'
+                if settings == default_settings:
+                    msg='The room name for your location is still unknown.'
             except ValueError:
                 msg='The config file for tiff-monitoring is empty or invalid JSON and has to be rewritten.'
                 settings = default_settings
@@ -54,7 +51,7 @@ def get_settings():
 
     if msg:
         filename = retrieve_filename(msg)
-        if filename: settings['location'] = filename
+        if filename: settings['room_name'] = filename
 
         with open(config_file_path, mode='w', encoding='utf-8') as config_file:
             config_file.write(json.dumps(settings))
@@ -62,15 +59,15 @@ def get_settings():
     return settings
 
 def retrieve_filename(msg):
-    default_msg = ('{0}\nPlease provide the location name:')
-    hint_msg = 'cinema room location'
-    check_zenity = subprocess.Popen(['pidof', 'zenity'], stdout=subprocess.PIPE)
-    pid, err = check_zenity.communicate()
+    default_msg = ('{0}\nPlease provide a room name:')
+    hint_msg = 'some unique identificator (ex: location+room_number*)'
+    check_kdialog = subprocess.Popen(['pidof', 'kdialog'], stdout=subprocess.PIPE)
+    pid, err = check_kdialog.communicate()
     if not str(pid, 'utf-8').strip():
-        file_dialog =  subprocess.Popen(['zenity', '--entry', '--title', 'Cinema Location',
-                                         '--text', default_msg.format(msg),
-                                         '--entry-text',hint_msg], stdout=subprocess.PIPE)
+        file_dialog =  subprocess.Popen(['kdialog', '--inputbox', default_msg.format(msg),
+                                         hint_msg], stdout=subprocess.PIPE)
         user_input, err = file_dialog.communicate()
+        write_log('user_input: {0}, err: {1}'.format(user_input, err))
         if err:
             write_log('Got error "{0}" while retrieving filename.'.format(err))
             return
@@ -80,22 +77,17 @@ def retrieve_filename(msg):
 def write_log(msg):
     log_file_path = os.path.join(DEFAULT_PATH, 'tiff-monitoring.log')
     with open(log_file_path, mode='a', encoding='utf-8') as log_file:
-        log_file.write(msg)
-        log_file.write('\n')
+        log_file.write(msg + '\n')
 
 def get_subtivals_stats():
     default_stats = {'subtitle': 'currently unavailable', 'remaining': '',
-                     'last_updated': '', 'duration': ''}
+                     'lastUpdated': '', 'duration': ''}
     try:
         with open(SUBTIVALS_LOG_LOCATION, mode='r', encoding='utf-8') as subtivals_log:
-            stats = {}
-            for line in subtivals_log:
-                value = line.split('->')
-                stats[value[0]] = value[1]
+            stats = json.loads(subtivals_log.read())
             if not stats:
                 stats = default_stats
-    except Exception as e:
-        write_log(e)
+    except:
         return default_stats
 
     return stats
