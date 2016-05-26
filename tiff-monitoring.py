@@ -26,7 +26,6 @@ def main():
     try:
         dbx = dropbox.Dropbox(os.environ['DROPBOX_TOKEN'])
         current_account = dbx.users_get_current_account()
-        write_log('Connected to DropBox account: {0}'.format(current_account))
         dbx.files_upload(make_stats_string(stats), file_path, mode=dropbox.files.WriteMode('overwrite', value=None))
     except:
         exit
