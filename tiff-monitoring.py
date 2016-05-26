@@ -17,7 +17,7 @@ def main():
 
     settings = get_settings()
     stats = get_subtivals_stats()
-    stats.update(get_batery_stats())
+    stats.update(get_battery_stats())
     stats['location'] = settings['location']
     stats['laptop_on'] = 'YES'
     stats['last_updated'] = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -85,20 +85,20 @@ def subtivals_on():
     pid, err = subtivals_process.communicate()
     return 'YES' if str(pid, 'utf-8').strip() else 'NO'
 
-def get_batery_stats():
+def get_battery_stats():
     stats = {}
-    get_batery_status = subprocess.Popen(['acpi', '-a'], stdout=subprocess.PIPE)
-    get_batery_level = subprocess.Popen(['acpi', '-b'], stdout=subprocess.PIPE)
-    batery_status, err = get_batery_status.communicate()
-    batery_level, err = get_batery_level.communicate()
+    get_battery_status = subprocess.Popen(['acpi', '-a'], stdout=subprocess.PIPE)
+    get_battery_level = subprocess.Popen(['acpi', '-b'], stdout=subprocess.PIPE)
+    battery_status, err = get_battery_status.communicate()
+    battery_level, err = get_battery_level.communicate()
 
     if err:
-        write_log('Got error "{0}" while retrieving batery_status.'.format(err))
-        stats =  {'batery_level': '', 'batery_status': ''}
+        write_log('Got error "{0}" while retrieving battery_status.'.format(err))
+        stats =  {'battery_level': '', 'battery_status': ''}
     else:
-        status =  str(batery_status,'utf-8').rstrip('\n').split(':')[1]
-        stats['batery_status'] = 'YES' if status.strip() == 'on-line' else 'NO'
-        stats['batery_level'] = str(batery_level,'utf-8').rstrip('\n').split(', ')[1]
+        status =  str(battery_status,'utf-8').rstrip('\n').split(':')[1]
+        stats['battery_status'] = 'YES' if status.strip() == 'on-line' else 'NO'
+        stats['battery_level'] = str(battery_level,'utf-8').rstrip('\n').split(', ')[1]
 
     return stats
 
@@ -120,7 +120,7 @@ def get_subtivals_stats():
 
 def make_stats_string(stats):
     fields_order = ['location', 'laptop_on', 'subtivals_on', 'subtitle', 'duration',
-             'remaining', 'batery_level', 'batery_status', 'last_updated']
+             'remaining', 'battery_level', 'battery_status', 'last_updated']
 
     ordered = list(stats.get(key) for key in fields_order)
     string_values = [str(val) for val in ordered]
