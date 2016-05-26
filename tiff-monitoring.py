@@ -17,6 +17,7 @@ def main():
 
     settings = get_settings()
     stats = get_subtivals_stats()
+    stats.update(get_batery_stats())
     stats['location'] = settings['location']
     stats['laptop_on'] = 'YES'
     stats['last_updated'] = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -26,10 +27,7 @@ def main():
         dbx = dropbox.Dropbox(os.environ['DROPBOX_TOKEN'])
         current_account = dbx.users_get_current_account()
         write_log('Connected to DropBox account: {0}'.format(current_account))
-        dbx.files_upload(stats, file_path)
-
-        for entry in dbx.files_list_folder('').entries:
-            print(entry.name)
+        dbx.files_upload(make_stats_string(stats), file_path, mode=dropbox.files.WriteMode('overwrite', value=None))
     except:
         exit
 
@@ -89,23 +87,31 @@ def subtivals_on():
     return 'YES' if str(pid, 'utf-8').strip() else 'NO'
 
 def get_batery_stats():
-    batery_info = subprocess.Popen(['acpi', '-i'], stdout=subprocess.PIPE)
-    batery_stats, err = batery_info.communicate()
+    stats = {}
+    get_batery_status = subprocess.Popen(['acpi', '-a'], stdout=subprocess.PIPE)
+    get_batery_level = subprocess.Popen(['acpi', '-b'], stdout=subprocess.PIPE)
+    batery_status, err = get_batery_status.communicate()
+    batery_level, err = get_batery_level.communicate()
+
     if err:
-        write_log('Got error "{0}" while retrieving filename.'.format(err))
-        return {'batery_status': '', 'batery_level': ''}
+        write_log('Got error "{0}" while retrieving batery_status.'.format(err))
+        stats =  {'batery_level': '', 'batery_status': ''}
     else:
-        return
+        status =  str(batery_status,'utf-8').rstrip('\n').split(':')[1]
+        stats['batery_status'] = 'YES' if status.strip() == 'on-line' else 'NO'
+        stats['batery_level'] = str(batery_level,'utf-8').rstrip('\n').split(' ')[-1]
+
+    return stats
 
 def get_subtivals_stats():
-    default_stats = {'subtitle': 'currently unavailable', 'remaining': '',
+    default_stats = {'subtitle': '', 'remaining': '',
                      'last_updated': '', 'duration': ''}
     try:
         with open(SUBTIVALS_LOG_LOCATION, mode='r', encoding='utf-8') as subtivals_log:
             stats = {}
             for line in subtivals_log:
                 value = line.split('->')
-                stats[value[0]] = value[1]
+                stats[value[0]] = value[1].strip()
             if not stats:
                 stats = default_stats
     except:
@@ -114,10 +120,12 @@ def get_subtivals_stats():
     return stats
 
 def make_stats_string(stats):
-    order = ['location', 'laptop_on', 'subtivals_on', 'subtitle', 'duration',
+    fields_order = ['location', 'laptop_on', 'subtivals_on', 'subtitle', 'duration',
              'remaining', 'batery_level', 'batery_status', 'last_updated']
 
-
+    ordered = list(stats.get(key) for key in fields_order)
+    string_values = [str(val) for val in ordered]
+    return '\n'.join(ordered)
 
 if __name__ == '__main__':
     main()
