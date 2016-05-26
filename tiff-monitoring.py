@@ -98,7 +98,7 @@ def get_batery_stats():
     else:
         status =  str(batery_status,'utf-8').rstrip('\n').split(':')[1]
         stats['batery_status'] = 'YES' if status.strip() == 'on-line' else 'NO'
-        stats['batery_level'] = str(batery_level,'utf-8').rstrip('\n').split(' ')[-1]
+        stats['batery_level'] = str(batery_level,'utf-8').rstrip('\n').split(', ')[1]
 
     return stats
 
@@ -124,7 +124,7 @@ def make_stats_string(stats):
 
     ordered = list(stats.get(key) for key in fields_order)
     string_values = [str(val) for val in ordered]
-    return '\n'.join(ordered)
+    return '\r\n'.join(ordered)
 
 if __name__ == '__main__':
     main()
