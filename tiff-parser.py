@@ -1,7 +1,9 @@
 import os
 import re
 import csv
-from datetime import datetime
+import sys
+import logging
+from datetime import datetime, date
 
 try:
     import xml.etree.cElementTree as ET
@@ -11,6 +13,7 @@ except ImportError:
 CINEMA_CODES_PATH = os.path.join(os.getcwd(), "cinema_codes")
 FILES_DONE_PATH = os.path.join(os.getcwd(), "files_done")
 OUTPUT_CSV_PATH = os.path.join(os.getcwd(), "output.csv")
+LOG_FILE_PATH = os.path.join(os.getcwd(), "info.log")
 XML_PATH = os.path.join(os.getcwd(), "XML")
 
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
@@ -18,9 +21,11 @@ DATE_PRETTY = "%A, %d %B - %X"
 CSV_FIELDS = ["Title", "Cinema", "Start Date", "End Date"]
 XML_TAGS = ["ContentTitleText", "AnnotationText", "ContentKeysNotValidBefore", "ContentKeysNotValidAfter"]
 
+logging.basicConfig(filename=LOG_FILE_PATH, filemode='a+', format="%(message)s", level=logging.INFO)
+
 def _get_cinema_codes(filename):
     if not filename or not os.path.exists(filename):
-        print("File with cinema codes not found!")
+        logging.info("File with cinema codes not found!")
         return {}
     
     with open(filename) as f:
@@ -35,19 +40,19 @@ def _rreplace(s, old, new, occurrence):
 
 def _get_date(date_string, xml_tag):
     if not date_string:
-        print("{} not found.".format(xml_tag))
+        logging.info("{} not found.".format(xml_tag))
         return None
     try:
         dt = datetime.strptime(_rreplace(date_string, ":", "", 1), DATE_FORMAT)
         dt = dt.astimezone(tz=None)
         return datetime.strftime(dt, DATE_PRETTY)
     except ValueError:
-        print("Couldn't parse {} {}.".format(xml_tag, date_string))
+        logging.info("Couldn't parse {} {}.".format(xml_tag, date_string))
         return date_string
 
 def _get_code(annotation_text, xml_tag):
     if not annotation_text:
-        print("{} not found.".format(xml_tag))
+        logging.info("{} not found.".format(xml_tag))
         return None
 
     regexes = list(CINEMAS.keys())
@@ -56,7 +61,7 @@ def _get_code(annotation_text, xml_tag):
     if code_re:
         return CINEMAS.get(code_re.group(0).upper(), code_re.group(0))
     else:
-        print("Couldn't find cinema code in {}.".format(annotation_text))
+        logging.info("Couldn't find cinema code in {}.".format(annotation_text))
         return None
 
 def _get_parsed_files(filename):
@@ -68,14 +73,15 @@ def _get_parsed_files(filename):
     return done
 
 def _set_parsed_files(filename, new_files):
+    t = "file" if len(new_files) == 1 else "files"
+    logging.info("Parsed {} new {}.".format(len(new_files), t))
+
     if not filename or not new_files:
         return
     
     with open(filename, 'a+') as f:
         for fname in new_files:
             f.write(fname + '\n')
-    t = "file" if len(new_files) == 1 else "files"
-    print("Parsed {} new {}.".format(len(new_files), t))
 
 def _write_to_csv(filename, parsed):
     if not filename:
@@ -89,8 +95,8 @@ def _write_to_csv(filename, parsed):
             writer.writerow(entry)
 
 def parse(filename):
-    print('^' * 100)
-    print("Parsing {}".format(filename))
+    logging.info('^' * 100)
+    logging.info("Parsing {}".format(filename))
 
     result = {key: None for key in CSV_FIELDS}
     tree = ET.ElementTree(file=os.path.join(XML_PATH, filename))
@@ -99,7 +105,7 @@ def parse(filename):
         if XML_TAGS[0] in e.tag:
             result[CSV_FIELDS[0]] = e.text
             if not e.text:
-                print("{} not found.".format(XML_TAGS[0]))
+                logging.info("{} not found.".format(XML_TAGS[0]))
         elif XML_TAGS[1] in e.tag:
             result[CSV_FIELDS[1]] = _get_code(e.text, XML_TAGS[1])
         elif XML_TAGS[2] in e.tag:
@@ -107,11 +113,24 @@ def parse(filename):
         elif XML_TAGS[3] in e.tag:
             result[CSV_FIELDS[3]] = _get_date(e.text, XML_TAGS[3])
 
-    print('.' * 100)
+    logging.info('.' * 100)
     return result
 
 
 if __name__ == "__main__":
+    today = datetime.now()
+    logging.info("\n\n\nParser started on {}".format(datetime.strftime(today, DATE_PRETTY)))
+    
+    allow_from = date(year=2017, month=5, day=6)
+    allow_until = date(year=2017, month=6, day=30)
+    td = date(year=today.year, month=today.month, day=today.day)
+    
+    if td < allow_from or td > allow_until:
+        logging.info("Cannot run parser, out of availability date ({} - {}).".format(
+            datetime.strftime(allow_from, format="%d %B %Y"),
+            datetime.strftime(allow_until, format="%d %B %Y")))
+        sys.exit()
+
     done = _get_parsed_files(FILES_DONE_PATH)
     new_files, parsed = [], []
     
