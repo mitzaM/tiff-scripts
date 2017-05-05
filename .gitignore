@@ -2,3 +2,4 @@ XML/
 files_done
 output.csv
 info.log
+__pycache__
