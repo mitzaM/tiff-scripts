@@ -1,5 +1,5 @@
-XML/
-files_done
-output.csv
-info.log
-__pycache__
+scripts/xml/
+scripts/files_done
+scripts/output.csv
+scripts/info.log
+scripts/__pycache__

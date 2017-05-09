@@ -1,12 +1,36 @@
 import csv
+import logging
+import os
 import re
+import sys
+from datetime import datetime
 
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
 
-from config import *
+
+CINEMA_CODES_PATH = os.path.join(os.getcwd(), "cinema_codes")
+FILES_DONE_PATH = os.path.join(os.getcwd(), "files_done")
+OUTPUT_CSV_PATH = os.path.join(os.getcwd(), "output.csv")
+LOG_FILE_PATH = os.path.join(os.getcwd(), "info.log")
+XML_PATH = os.path.join(os.getcwd(), "xml")
+
+ALLOW_START = datetime(year=2017, month=5, day=1)
+ALLOW_END = datetime(year=2017, month=6, day=30)
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+DATE_PRETTY = "%A, %d %B - %X"
+CSV_FIELDS = ["Title", "Cinema", "Start Date", "End Date"]
+XML_TAGS = ["ContentTitleText", "AnnotationText",
+            "ContentKeysNotValidBefore", "ContentKeysNotValidAfter"]
+AVAILABILITY_ERROR_MSG = (
+    "Cannot run, out of availability date ({} - {}).\n\n".format(
+        datetime.strftime(ALLOW_START, format="%d %B %Y"),
+        datetime.strftime(ALLOW_END, format="%d %B %Y")))
+
+logging.basicConfig(filename=LOG_FILE_PATH, filemode='a+',
+                    format="%(message)s", level=logging.INFO)
 
 
 def _rreplace(s, old, new, occurrence):
@@ -16,14 +40,14 @@ def _rreplace(s, old, new, occurrence):
 
 def get_cinema_codes(filename):
     if not filename or not os.path.exists(filename):
-        logging.info("File with cinema codes not found!")
+        logging.info("File with cinema codes not found! "
+                     "File format: \"<cinema_name> - <cinema_code>\"\n")
         return {}
 
     with open(filename) as f:
         codes = [line.rstrip('\n').split(" - ") for line in f]
     return {code: location for location, code in codes}
 
-CINEMAS = get_cinema_codes(CINEMA_CODES_PATH)
 
 def get_date(date_string, xml_tag):
     if not date_string:
@@ -38,16 +62,15 @@ def get_date(date_string, xml_tag):
         return date_string
 
 
-def get_code(annotation_text, xml_tag):
+def get_code(annotation_text, xml_tag, cinemas):
     if not annotation_text:
         logging.info("{} not found.".format(xml_tag))
         return None
 
-    combined = "({})".format(")|(".join(list(CINEMAS.keys())))
+    combined = "({})".format(")|(".join(list(cinemas.keys())))
     code_re = re.search(combined, annotation_text, re.IGNORECASE)
-
     if code_re:
-        return CINEMAS.get(code_re.group(0).upper(), code_re.group(0))
+        return cinemas.get(code_re.group(0).upper(), code_re.group(0))
     else:
         logging.info("Couldn't find cinema code in {}.".format(annotation_text))
         return None
@@ -64,8 +87,7 @@ def get_parsed_files(filename):
 
 def set_parsed_files(filename, new_files):
     t = "file" if len(new_files) == 1 else "files"
-    logging.info("Parsed {} new {}.".format(len(new_files), t))
-
+    logging.info("Parsed {} new {}. Done!\n\n".format(len(new_files), t))
     if not filename or not new_files:
         return
 
@@ -86,8 +108,7 @@ def write_to_csv(filename, parsed):
             writer.writerow(entry)
 
 
-def parse(filename):
-    logging.info('^' * 100)
+def parse(filename, cinemas):
     logging.info("Parsing {}".format(filename))
 
     result = {key: None for key in CSV_FIELDS}
@@ -99,12 +120,38 @@ def parse(filename):
             if not e.text:
                 logging.info("{} not found.".format(XML_TAGS[0]))
         elif XML_TAGS[1] in e.tag:
-            result[CSV_FIELDS[1]] = get_code(e.text, XML_TAGS[1])
+            result[CSV_FIELDS[1]] = get_code(e.text, XML_TAGS[1], cinemas)
         elif XML_TAGS[2] in e.tag:
             result[CSV_FIELDS[2]] = get_date(e.text, XML_TAGS[2])
         elif XML_TAGS[3] in e.tag:
             result[CSV_FIELDS[3]] = get_date(e.text, XML_TAGS[3])
 
-    logging.info('.' * 100)
-    logging.info("\n\n")
+    logging.info("\n")
     return result
+
+
+if __name__ == "__main__":
+    today = datetime.today()
+    logging.info("Parser started on {}".format(
+        datetime.strftime(today, DATE_PRETTY)))
+
+    if not ALLOW_START < today < ALLOW_END:
+        logging.info(AVAILABILITY_ERROR_MSG)
+        sys.exit()
+
+    if not os.path.exists(XML_PATH):
+        logging.info("/xml folder not found. Quitting.\n\n")
+        sys.exit()
+
+    done = get_parsed_files(FILES_DONE_PATH)
+    new_files, parsed = [], []
+    cinemas = get_cinema_codes(CINEMA_CODES_PATH)
+
+    for filename in os.listdir(XML_PATH):
+        if filename.lower().endswith(".xml") and filename not in done:
+            p = parse(filename, cinemas)
+            parsed.append(p)
+            new_files.append(filename)
+
+    set_parsed_files(FILES_DONE_PATH, new_files)
+    write_to_csv(OUTPUT_CSV_PATH, parsed)

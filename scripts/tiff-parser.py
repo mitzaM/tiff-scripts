@@ -11,15 +11,19 @@ if __name__ == "__main__":
         logging.info(AVAILABILITY_ERROR_MSG)
         sys.exit()
 
+    if not os.path.exists(XML_PATH):
+        logging.info("/xml folder not found. Quitting.\n\n")
+        sys.exit()
+
     done = get_parsed_files(FILES_DONE_PATH)
     new_files, parsed = [], []
+    cinemas = get_cinema_codes(CINEMA_CODES_PATH)
 
     for filename in os.listdir(XML_PATH):
         if filename.lower().endswith(".xml") and filename not in done:
-            p = parse(filename)
+            p = parse(filename, cinemas)
             parsed.append(p)
             new_files.append(filename)
 
     set_parsed_files(FILES_DONE_PATH, new_files)
     write_to_csv(OUTPUT_CSV_PATH, parsed)
-    logging.info("Done!\n\n")

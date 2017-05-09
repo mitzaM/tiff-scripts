@@ -6,7 +6,7 @@ CINEMA_CODES_PATH = os.path.join(os.getcwd(), "cinema_codes")
 FILES_DONE_PATH = os.path.join(os.getcwd(), "files_done")
 OUTPUT_CSV_PATH = os.path.join(os.getcwd(), "output.csv")
 LOG_FILE_PATH = os.path.join(os.getcwd(), "info.log")
-XML_PATH = os.path.join(os.getcwd(), "XML")
+XML_PATH = os.path.join(os.getcwd(), "xml")
 
 ALLOW_START = datetime(year=2017, month=5, day=1)
 ALLOW_END = datetime(year=2017, month=6, day=30)
