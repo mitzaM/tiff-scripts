@@ -17,11 +17,10 @@ if __name__ == "__main__":
 
     done = get_parsed_files(FILES_DONE_PATH)
     new_files, parsed = [], []
-    cinemas = get_cinema_codes(CINEMA_CODES_PATH)
 
     for filename in os.listdir(XML_PATH):
         if filename.lower().endswith(".xml") and filename not in done:
-            p = parse(filename, cinemas)
+            p = parse(filename)
             parsed.append(p)
             new_files.append(filename)
 

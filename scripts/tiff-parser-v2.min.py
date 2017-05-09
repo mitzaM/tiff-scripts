@@ -1,135 +1,145 @@
 import csv
-q=ImportError
-E=open
-d=None
-mG=ValueError
-mr=list
-mz=len
-mp=False
-mw=True
-n=csv.DictWriter
+PG=ImportError
+Pj=open
+Pq=None
+PI=ValueError
+Pg=list
+PA=len
+Pu=False
+PQ=True
+Pi=any
+Px=enumerate
+l=csv.DictWriter
 import logging
-C=logging.info
-t=logging.basicConfig
-b=logging.INFO
+T=logging.info
+D=logging.basicConfig
+C=logging.INFO
 import os
-f=os.getcwd
-c=os.path
-N=os.listdir
+W=os.getcwd
+K=os.path
+Y=os.listdir
 import re
-J=re.search
-X=re.IGNORECASE
+L=re.search
+y=re.IGNORECASE
 import sys
-O=sys.exit
+h=sys.exit
 from datetime import datetime
-B=datetime.strftime
-a=datetime.strptime
-o=datetime.today
+PV=datetime.strftime
+Pv=datetime.strptime
+PO=datetime.today
 try:
  import xml.etree.cElementTree as ET
-except q:
+except PG:
  import xml.etree.ElementTree as ET
-m=c.join(f(),"cinema_codes")
-G=c.join(f(),"files_done")
-r=c.join(f(),"output.csv")
-z=c.join(f(),"info.log")
-p=c.join(f(),"xml")
-w=datetime(year=2017,month=5,day=1)
-u=datetime(year=2017,month=6,day=30)
-H="%Y-%m-%dT%H:%M:%S%z"
-y="%A, %d %B - %X"
-x=["Title","Cinema","Start Date","End Date"]
-F=["ContentTitleText","AnnotationText","ContentKeysNotValidBefore","ContentKeysNotValidAfter"]
-V=("Cannot run, out of availability date ({} - {}).\n\n".format(B(w,format="%d %B %Y"),B(u,format="%d %B %Y")))
-t(filename=z,filemode='a+',format="%(message)s",level=b)
-def l(s,old,new,occurrence):
+P=W()
+V=K.join(P,"cinema_codes")
+v=K.join(P,"files_done")
+O=K.join(P,"output.csv")
+G=K.join(P,"info.log")
+j=K.join(P,"xml")
+q=datetime(year=2017,month=5,day=1)
+I=datetime(year=2017,month=6,day=30)
+g="%Y-%m-%dT%H:%M:%S%z"
+A="%A, %d %B - %X"
+u=["Title","Cinema","Start Date","End Date"]
+Q=["ContentTitleText","AnnotationText","ContentKeysNotValidBefore","ContentKeysNotValidAfter"]
+i=("Cannot run, out of availability date ({} - {}).\n\n".format(PV(q,format="%d %B %Y"),PV(I,format="%d %B %Y")))
+D(filename=G,filemode='a+',format="%(message)s",level=C)
+def m(s,old,new,occurrence):
  li=s.rsplit(old,occurrence)
  return new.join(li)
-def I(K):
- if not K or not c.exists(K):
-  C("File with cinema codes not found! " "File format: \"<cinema_name> - <cinema_code>\"\n")
+def p(x):
+ if not x or not K.exists(x):
+  T("File with cinema codes not found! " "File format: \"<cinema_name> - <cinema_code>\"\n")
   return{}
- with E(K)as f:
-  s=[line.rstrip('\n').split(" - ")for line in f]
- return{code:location for location,code in s}
-def L(date_string,xml_tag):
+ with Pj(x)as f:
+  J=[line.rstrip('\n').split(" - ")for line in f]
+ return{code:location for location,code in J}
+def U(text,xml_tag):
+ if not text:
+  T("{}: Value not found.".format(xml_tag))
+ return text
+def M(date_string,xml_tag):
  if not date_string:
-  C("{} not found.".format(xml_tag))
-  return d
+  T("{} not found.".format(xml_tag))
+  return Pq
  try:
-  dt=a(l(date_string,":","",1),H)
-  dt=dt.astimezone(tz=d)
-  return B(dt,y)
- except mG:
-  C("Couldn't parse {} {}.".format(xml_tag,date_string))
+  dt=Pv(m(date_string,":","",1),g)
+  dt=dt.astimezone(tz=Pq)
+  return PV(dt,A)
+ except PI:
+  T("Couldn't parse {} {}.".format(xml_tag,date_string))
   return date_string
-def W(annotation_text,xml_tag,g):
+def k(annotation_text,xml_tag):
  if not annotation_text:
-  C("{} not found.".format(xml_tag))
-  return d
- T="({})".format(")|(".join(mr(g.keys())))
- Y=J(T,annotation_text,X)
- if Y:
-  return g.get(Y.group(0).upper(),Y.group(0))
+  T("{}: Value not found.".format(xml_tag))
+  return Pq
+ w="({})".format(")|(".join(Pg(F.keys())))
+ f=L(w,annotation_text,y)
+ if f:
+  return F.get(f.group(0).upper(),f.group(0))
  else:
-  C("Couldn't find cinema code in {}.".format(annotation_text))
-  return d
-def e(K):
- if not K or not c.exists(K):
+  T("Couldn't find cinema code in {}.".format(annotation_text))
+  return Pq
+F=p(V)
+R=[U,k,M,M]
+def E(x):
+ if not x or not K.exists(x):
   return[]
- with E(K)as f:
-  R=[line.rstrip('\n')for line in f]
- return R
-def A(K,S):
- t="file" if mz(S)==1 else "files"
- C("Parsed {} new {}. Done!\n\n".format(mz(S),t))
- if not K or not S:
+ with Pj(x)as f:
+  r=[line.rstrip('\n')for line in f]
+ return r
+def S(x,X):
+ t="file" if PA(X)==1 else "files"
+ T("Parsed {} new {}. Done!\n\n".format(PA(X),t))
+ if not x or not X:
   return
- with E(K,'a+')as f:
-  for U in S:
-   f.write(U+'\n')
-def M(K,j):
- if not K:
+ with Pj(x,'a+')as f:
+  for N in X:
+   f.write(N+'\n')
+def d(x,b):
+ if not x:
   return
- D=mp if c.exists(K)else mw
- with E(K,'a+')as csvfile:
-  i=n(csvfile,fieldnames=x)
-  D and i.writeheader()
-  for h in j:
-   i.writerow(h)
-def Q(K,g):
- C("Parsing {}".format(K))
- v={key:d for key in x}
- k=ET.ElementTree(file=c.join(p,K))
- for e in k.getroot().iter():
-  if F[0]in e.tag:
-   v[x[0]]=e.text
-   if not e.text:
-    C("{} not found.".format(F[0]))
-  elif F[1]in e.tag:
-   v[x[1]]=W(e.text,F[1],g)
-  elif F[2]in e.tag:
-   v[x[2]]=L(e.text,F[2])
-  elif F[3]in e.tag:
-   v[x[3]]=L(e.text,F[3])
- C("\n")
- return v
+ e=Pu if K.exists(x)else PQ
+ with Pj(x,'a+')as csvfile:
+  a=l(csvfile,fieldnames=u)
+  e and a.writeheader()
+  for H in b:
+   a.writerow(H)
+def c(x):
+ T("Parsing {}".format(x))
+ B={key:Pq for key in u}
+ n=ET.ElementTree(file=K.join(j,x))
+ o=[PQ]*PA(Q)
+ for e in n.getroot().iter():
+  s=e.tag[e.tag.rindex("}")+1:]
+  try:
+   t=Q.index(s)
+   o[t]=Pu
+   B[u[t]]=R[t](e.text,Q[t])
+  except PI:
+   pass
+  if not Pi(o):
+   break
+ for i,e in Px(o):
+  e and T("{} not found.".format(Q[i]))
+ T("\n")
+ return B
 if __name__=="__main__":
- P=o()
- C("Parser started on {}".format(B(P,y)))
- if not w<P<u:
-  C(V)
-  O()
- if not c.exists(p):
-  C("/xml folder not found. Quitting.\n\n")
-  O()
- R=e(G)
- S,j=[],[]
- g=I(m)
- for K in N(p):
-  if K.lower().endswith(".xml")and K not in R:
-   p=Q(K,g)
-   j.append(p)
-   S.append(K)
- A(G,S)
- M(r,j)
+ z=PO()
+ T("Parser started on {}".format(PV(z,A)))
+ if not q<z<I:
+  T(i)
+  h()
+ if not K.exists(j):
+  T("/xml folder not found. Quitting.\n\n")
+  h()
+ r=E(v)
+ X,b=[],[]
+ for x in Y(j):
+  if x.lower().endswith(".xml")and x not in r:
+   p=c(x)
+   b.append(p)
+   X.append(x)
+ S(v,X)
+ d(O,b)
