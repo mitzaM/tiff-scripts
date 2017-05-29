@@ -12,10 +12,13 @@ except ImportError:
 
 cwd = os.getcwd()
 
+if not os.path.exists(os.path.join(cwd, "out")):
+    os.makedirs(os.path.join(cwd, "out"))
+
 CINEMA_CODES_PATH = os.path.join(cwd, "cinema_codes")
-FILES_DONE_PATH = os.path.join(cwd, "files_done")
-OUTPUT_CSV_PATH = os.path.join(cwd, "output.csv")
-LOG_FILE_PATH = os.path.join(cwd, "info.log")
+FILES_DONE_PATH = os.path.join(cwd, "out", "files_done")
+OUTPUT_CSV_PATH = os.path.join(cwd, "out", "output.csv")
+LOG_FILE_PATH = os.path.join(cwd, "out", "info.log")
 XML_PATH = os.path.join(cwd, "xml")
 
 ALLOW_START = datetime(year=2017, month=5, day=1)
@@ -122,7 +125,7 @@ def parse(filename):
     logging.info("Parsing {}".format(filename))
 
     result = {key: None for key in CSV_FIELDS}
-    tree = ET.ElementTree(file=os.path.join(XML_PATH, filename))
+    tree = ET.ElementTree(file=filename)
     tags_not_found = [True] * len(XML_TAGS)
 
     for e in tree.getroot().iter():
@@ -133,7 +136,7 @@ def parse(filename):
             result[CSV_FIELDS[idx]] = func[idx](e.text, XML_TAGS[idx])
         except ValueError:
             pass
-        
+
         if not any(tags_not_found):
             break
 
@@ -160,11 +163,13 @@ if __name__ == "__main__":
     done = get_parsed_files(FILES_DONE_PATH)
     new_files, parsed = [], []
 
-    for filename in os.listdir(XML_PATH):
-        if filename.lower().endswith(".xml") and filename not in done:
-            p = parse(filename)
-            parsed.append(p)
-            new_files.append(filename)
+    for root, _, files in os.walk(XML_PATH):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            if filename.lower().endswith(".xml") and filename not in done:
+                p = parse(file_path)
+                parsed.append(p)
+                new_files.append(filename)
 
     set_parsed_files(FILES_DONE_PATH, new_files)
     write_to_csv(OUTPUT_CSV_PATH, parsed)

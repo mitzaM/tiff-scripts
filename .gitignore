@@ -1,7 +1,5 @@
 *.py[cod]
 
 xml/
-files_done
-output.csv
-info.log
+out/
 __pycache__
