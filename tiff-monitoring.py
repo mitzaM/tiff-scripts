@@ -1,12 +1,13 @@
-import dropbox
 import json
 import io
 import os
+import shutil
 import subprocess
 import time
 
 DEFAULT_PATH = os.path.expanduser('~')
 SUBTIVALS_LOG_LOCATION = os.path.join(DEFAULT_PATH, 'subtivals_log.txt')
+DROPBOX = os.path.join(DEFAULT_PATH, "Dropbox/Apps/tiff-monitoring")
 
 def main():
     """Main program.
@@ -22,13 +23,12 @@ def main():
     stats['laptop_on'] = 'YES'
     stats['last_updated'] = time.strftime('%Y-%m-%d %H:%M:%S')
     stats['subtivals_on'] = subtivals_on()
-    file_path = '/{0}.txt'.format(stats['location'])
-    try:
-        dbx = dropbox.Dropbox(os.environ['DROPBOX_TOKEN'])
-        current_account = dbx.users_get_current_account()
-        dbx.files_upload(make_stats_string(stats), file_path, mode=dropbox.files.WriteMode('overwrite', value=None))
-    except:
-        exit
+    file_path = '{0}.txt'.format(stats['location'])
+    with open(os.path.join(DEFAULT_PATH, file_path), "w") as f:
+        f.write(make_stats_string(stats))
+    src = os.path.join(DEFAULT_PATH, file_path)
+    dest = '{}/{}.txt'.format(DROPBOX, stats['location'])
+    shutil.move(src, dest)
 
 def get_settings():
     default_settings = {'location': 'unknown'}
